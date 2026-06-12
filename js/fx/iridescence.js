@@ -1,7 +1,9 @@
-// Thin-film iridescence — a dark silk ribbon undulating behind the
-// Philosophy quote. The sheen shifts green -> blue -> violet with viewing
-// angle, the way light plays across a raven's feather. Normals come from
-// screen-space derivatives so the displaced surface shades correctly.
+// Raven feather — a procedural feather behind the Philosophy quote.
+// Quill enters just off the bottom-right of the section; the vane sweeps
+// diagonally up-left, tip resolving inside the section. Anatomy (shaft
+// curve, lopsided vane, barbs, splits, rachis) is built in the fragment
+// shader; the sheen shifts green -> teal-blue -> violet with viewing
+// angle, monotonically, the way light plays across a raven's feather.
 
 import * as THREE from 'three';
 import { makeRenderer, autoSize, renderLoop, GLSL_NOISE, PALETTE, IS_MOBILE, REDUCED_MOTION } from './utils.js';
@@ -73,8 +75,8 @@ export function initIridescence(canvas) {
       ${GLSL_NOISE}
 
       // ---- feather anatomy --------------------------------------------------
-      // One oversized feather, dramatically cropped: the quill enters at the
-      // lower-left of the section, the tip exits past the upper-right.
+      // One oversized feather: the quill enters just off the bottom-right
+      // edge; the vane sweeps up-left, tip resolving inside the section.
       const vec2 FUV_SCALE = vec2(3.81, 1.0); // aspect-correct (16 / 4.2)
       const float QUILL_X = 4.05; // quill base, hidden just off the right edge
       const float TIP_X   = 0.18; // tip, reaching into the left of the section
@@ -82,7 +84,7 @@ export function initIridescence(canvas) {
       float shaftCurve(float t) {
         // rachis centreline in uv.y: enters low at the bottom-right and
         // rises toward the midline, bowing through midspan
-        return 0.18 + 0.42 * t + 0.14 * sin(3.14159 * t);
+        return 0.15 + 0.5 * t + 0.14 * sin(3.14159 * t);
       }
       float xFromT(float t) { return QUILL_X + (TIP_X - QUILL_X) * t; }
 
@@ -109,7 +111,7 @@ export function initIridescence(canvas) {
         // vane silhouette: long bare quill, then a strongly lopsided vane —
         // broad trailing edge below the shaft, tight leading edge above.
         // The fractional outer pow rounds the tip instead of needling it.
-        float prof = pow(sin(3.14159 * pow(clamp(t, 0.0, 1.0), 0.6)), 0.65);
+        float prof = pow(sin(3.14159 * pow(clamp(t, 0.0, 1.0), 0.6)), 0.4);
         prof *= smoothstep(0.10, 0.30, t);
         float wSide = (side > 0.0 ? 0.15 : 0.33) * prof;
 
@@ -169,7 +171,7 @@ export function initIridescence(canvas) {
   });
 
   const ribbon = new THREE.Mesh(geometry, material);
-  ribbon.rotation.set(-0.5, 0, -0.18); // z-tilt drops the right side: the quill enters low
+  ribbon.rotation.set(-0.5, 0, -0.2); // z-tilt drops the right side: the quill enters low
   ribbon.position.y = -0.1;
   scene.add(ribbon);
 
