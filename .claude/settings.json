@@ -24,7 +24,9 @@
       "Bash(git commit -m ' *)",
       "Bash(echo \"exit: $?\")",
       "Bash(node cdp3.js \"http://127.0.0.1:4173/?cb=$\\(date +%s\\)\")",
-      "Bash(echo \"grep exit: $? \\(1 = no references left\\)\")"
+      "Bash(echo \"grep exit: $? \\(1 = no references left\\)\")",
+      "Bash(git merge *)",
+      "Bash(git worktree *)"
     ]
   }
 }
