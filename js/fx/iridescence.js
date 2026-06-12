@@ -42,9 +42,10 @@ export function initIridescence(canvas) {
         vec3 p = vec3((suv - 0.5) * PLANE, 0.0);
         float t = uTime;
         // layered undulation: broad fbm swell plus a slow travelling wave
-        p.z += fbm(suv * vec2(3.0, 1.4) + vec2(-t * 0.05, t * 0.02)) * 1.5;
-        p.z += sin(suv.x * 5.5 + t * 0.12) * 0.35;
-        p.y += sin(suv.x * 2.5 - t * 0.05) * 0.25;
+        // (kept shallow — a feather lies sleeker than silk)
+        p.z += fbm(suv * vec2(3.0, 1.4) + vec2(-t * 0.05, t * 0.02)) * 1.1;
+        p.z += sin(suv.x * 5.5 + t * 0.12) * 0.28;
+        p.y += sin(suv.x * 2.5 - t * 0.05) * 0.2;
         return p;
       }
 
@@ -76,23 +77,41 @@ export function initIridescence(canvas) {
         vec3 V = normalize(cameraPosition - vWorld);
         float ndv = abs(dot(N, V));
 
-        // interference phase: viewing angle + a drifting "film thickness"
-        float phase = (1.0 - ndv) * 6.0 + fbm(vUv * vec2(5.0, 2.5) + uTime * 0.04) * 4.0;
+        // ---- barb field: a gently curving fibre direction, like the barbs
+        // sweeping off a feather's shaft ----
+        vec2 fuv = vUv * vec2(3.81, 1.0); // aspect-correct (16 / 4.2)
+        float curl = fbm(vUv * vec2(1.2, 0.8)) - 0.5;
+        float angle = -0.35 + (vUv.y - 0.5) * 0.8 + curl * 0.9;
+        vec2 dir = vec2(cos(angle), sin(angle));
+        float along  = dot(fuv, dir);
+        float across = dot(fuv, vec2(-dir.y, dir.x));
+
+        // filaments: noise stretched long in the barb direction, fine across
+        float fiber  = vnoise(vec2(across * 160.0, along * 2.5));
+        float fiber2 = vnoise(vec2(across * 420.0 + 7.0, along * 5.0));
+        float barbs = smoothstep(0.25, 0.85, fiber * 0.65 + fiber2 * 0.35);
+
+        // interference phase: viewing angle + position along the barbs,
+        // so the sheen rides the fibres in narrow bands
+        float phase = (1.0 - ndv) * 6.0 + along * 2.0 + fiber * 2.4
+                    + fbm(vUv * vec2(3.0, 1.5)) * 2.0 + uTime * 0.25;
         vec3 w3 = 0.5 + 0.5 * cos(phase + vec3(0.0, 1.35, 2.7));
 
         // bias the spectrum to the brand: green leads, blue-violet follows,
         // copper only as the faintest warm flash
-        vec3 sheen = uIrid * 1.25 * w3.g
-                   + vec3(0.30, 0.36, 0.58) * w3.b
-                   + uCopper * 0.30 * w3.r;
+        vec3 sheen = uIrid * 1.6 * w3.g
+                   + vec3(0.32, 0.40, 0.66) * w3.b
+                   + uCopper * 0.28 * w3.r;
 
-        vec3 base = vec3(0.075, 0.083, 0.105); // near storm-deep
-        float fres = pow(1.0 - ndv, 2.2);
-        vec3 col = base + sheen * (0.16 + fres * 0.55);
+        // sleek near-black base; barbs darken the gaps between filaments
+        vec3 base = vec3(0.055, 0.062, 0.082) * (0.7 + 0.3 * barbs);
+        float fres = pow(1.0 - ndv, 3.0);
+        // sheen concentrated on the filaments, tight and glossy
+        vec3 col = base + sheen * (0.06 + fres * 0.9) * (0.25 + 0.75 * barbs);
 
         float edge = smoothstep(0.0, 0.10, vUv.x) * smoothstep(1.0, 0.90, vUv.x)
                    * smoothstep(0.0, 0.18, vUv.y) * smoothstep(1.0, 0.82, vUv.y);
-        gl_FragColor = vec4(col, edge * 0.85);
+        gl_FragColor = vec4(col, edge * 0.9);
       }
     `,
   });
