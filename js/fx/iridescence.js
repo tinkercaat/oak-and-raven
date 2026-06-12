@@ -76,12 +76,13 @@ export function initIridescence(canvas) {
       // One oversized feather, dramatically cropped: the quill enters at the
       // lower-left of the section, the tip exits past the upper-right.
       const vec2 FUV_SCALE = vec2(3.81, 1.0); // aspect-correct (16 / 4.2)
-      const float XQ = -0.3; // quill x, just off the left edge
-      const float XT = 4.5;  // tip x, off the right edge
+      const float XQ = -0.05; // quill x, entering at the left edge
+      const float XT = 3.55;  // tip x, visible inside the right edge
 
       float shaftCurve(float t) {
-        // rachis centreline in uv.y, rising lower-left -> upper-right
-        return 0.30 + 0.40 * t + 0.09 * sin(t * 2.8);
+        // rachis centreline in uv.y: a pronounced arc, bowing up through
+        // midspan the way a flight feather curves
+        return 0.26 + 0.42 * t + 0.16 * sin(3.14159 * t);
       }
 
       void main() {
@@ -102,18 +103,22 @@ export function initIridescence(canvas) {
         vec2 barbDir = mat2(cos(ba), -sin(ba), sin(ba), cos(ba)) * tangent;
         vec2 barbPerp = vec2(-barbDir.y, barbDir.x);
 
-        // vane silhouette: bare near the quill, fullest past midspan,
-        // tapering toward the (off-canvas) point; trailing edge wider
+        // vane silhouette: long bare quill, then a strongly lopsided vane —
+        // broad trailing edge below the shaft, tight leading edge above
         float prof = sin(3.14159 * pow(clamp(t, 0.0, 1.0), 0.6));
-        prof *= smoothstep(0.03, 0.22, t);
-        float wSide = (side > 0.0 ? 0.30 : 0.20) * prof;
-        float vane = 1.0 - smoothstep(wSide * 0.72, wSide, abs(q));
+        prof *= smoothstep(0.10, 0.30, t);
+        float wSide = (side > 0.0 ? 0.15 : 0.33) * prof;
 
-        // vane splits: V-shaped separations, deepest at the outer edge
-        float sp = vnoise(vec2(t * 16.0, side > 0.0 ? 3.7 : 8.9));
-        float cut = smoothstep(0.74, 0.92, sp)
-                  * smoothstep(0.30, 0.95, abs(q) / max(wSide, 1e-4));
-        vane *= 1.0 - cut * 0.9;
+        // ragged outline: barb-tip fingers serrate the edge
+        float serr = vnoise(vec2(t * 55.0, side > 0.0 ? 1.3 : 5.1));
+        float wEff = wSide * (0.84 + 0.20 * serr);
+        float vane = 1.0 - smoothstep(wEff * 0.70, wEff, abs(q));
+
+        // vane splits: deeper, more frequent V-shaped separations
+        float sp = vnoise(vec2(t * 18.0, side > 0.0 ? 3.7 : 8.9));
+        float cut = smoothstep(0.68, 0.88, sp)
+                  * smoothstep(0.25, 0.9, abs(q) / max(wSide, 1e-4));
+        vane *= 1.0 - cut;
 
         // filaments along the barb direction
         float fiber  = vnoise(vec2(dot(fuv, barbPerp) * 170.0, dot(fuv, barbDir) * 2.5));
@@ -132,16 +137,21 @@ export function initIridescence(canvas) {
         float shimmer = 0.55 + 0.45 * vnoise(vec2(dot(fuv, barbDir) * 3.0 + uTime * 0.15,
                                                   dot(fuv, barbPerp) * 24.0));
 
+        // like the reference: near-black at the base, blue richest past midspan
+        sheenColor = mix(sheenColor, vec3(0.30, 0.42, 0.66),
+                         0.4 * smoothstep(0.4, 0.9, t));
+        float bloom = 0.45 + 0.75 * smoothstep(0.2, 0.7, t);
+
         vec3 base = vec3(0.055, 0.062, 0.082) * (0.7 + 0.3 * barbs);
         float fres = pow(grazing, 3.0);
-        vec3 col = base + sheenColor * (0.05 + fres * 1.15) * (0.25 + 0.75 * barbs) * shimmer;
+        vec3 col = base + sheenColor * (0.05 + fres * 1.15) * (0.25 + 0.75 * barbs)
+                 * shimmer * bloom;
 
-        // rachis: a thin lit ridge at the bare quill end that melts into the
-        // plumage once the vane develops (barbs cover the shaft on a real
-        // feather — it shouldn't slice through to the tip)
+        // rachis: a thin lit ridge along the longer bare quill that melts
+        // into the plumage once the vane develops (barbs cover the shaft)
         float rw = 0.007 * (1.0 - t * 0.5) + 0.002;
         float rachis = 1.0 - smoothstep(rw * 0.45, rw, abs(q));
-        rachis *= smoothstep(0.0, 0.05, t) * (1.0 - smoothstep(0.30, 0.65, t));
+        rachis *= smoothstep(0.0, 0.04, t) * (1.0 - smoothstep(0.38, 0.75, t));
         col = mix(col, vec3(0.15, 0.155, 0.185) + sheenColor * fres * 0.35, rachis * 0.85);
 
         // canvas-edge safety fade (the silhouette does the real shaping now)
