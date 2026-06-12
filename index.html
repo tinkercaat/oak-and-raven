@@ -123,6 +123,7 @@
 
     <!-- ===== Philosophy ===== -->
     <section class="section section--storm philosophy">
+      <canvas class="fx-canvas" id="fx-iridescence" aria-hidden="true"></canvas>
       <div class="container philosophy__inner">
         <p class="eyebrow eyebrow--copper" data-reveal>Philosophy</p>
         <blockquote class="philosophy__quote" id="philosophy-quote">
@@ -149,6 +150,7 @@
 
         <div class="services__grid" data-reveal-group>
           <article class="card" data-reveal>
+            <canvas class="card__grain" aria-hidden="true"></canvas>
             <div class="card__icon" aria-hidden="true">
               <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                 <path d="M24 8 L40 17 L24 26 L8 17 Z"/>
@@ -165,6 +167,7 @@
           </article>
 
           <article class="card" data-reveal>
+            <canvas class="card__grain" aria-hidden="true"></canvas>
             <div class="card__icon" aria-hidden="true">
               <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                 <circle cx="24" cy="24" r="16"/>
@@ -181,6 +184,7 @@
           </article>
 
           <article class="card" data-reveal>
+            <canvas class="card__grain" aria-hidden="true"></canvas>
             <div class="card__icon" aria-hidden="true">
               <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                 <circle cx="10" cy="24" r="4"/>
@@ -244,6 +248,7 @@
 
     <!-- ===== About Nathan ===== -->
     <section class="section section--storm about" id="about">
+      <canvas class="fx-canvas" data-motes aria-hidden="true"></canvas>
       <div class="container about__layout">
         <div class="about__portrait" data-reveal>
           <div class="about__portrait-frame" data-parallax>
@@ -283,6 +288,7 @@
 
     <!-- ===== Footer CTA ===== -->
     <section class="section section--storm cta" id="contact">
+      <canvas class="fx-canvas" id="fx-murmuration" aria-hidden="true"></canvas>
       <div class="container cta__inner">
         <h2 class="cta__title reveal-lines">
           <span class="line"><span class="line__inner">Ready to build</span></span>
@@ -310,6 +316,7 @@
   <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.18/dist/lenis.min.js"></script>
   <script type="module" src="js/hero.js"></script>
+  <script type="module" src="js/fx/index.js"></script>
   <script src="js/main.js" defer></script>
 </body>
 </html>

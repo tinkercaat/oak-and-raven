@@ -72,6 +72,7 @@ function init() {
     uTime: { value: 0 },
     uPixelRatio: { value: renderer.getPixelRatio() },
     uFade: { value: 0 }, // ramped in by main.js intro (or locally)
+    uScroll: { value: 0 }, // 0 at hero top -> 1 as the hero scrolls away
     uIridescent: { value: new THREE.Color('#426858') },
     uCopper: { value: new THREE.Color('#B07038') },
     uCloud: { value: new THREE.Color('#EDE8E2') },
@@ -87,6 +88,7 @@ function init() {
       attribute float aRand;
       uniform float uTime;
       uniform float uPixelRatio;
+      uniform float uScroll;
       varying float vRing;
       varying float vRand;
       varying float vWave;
@@ -112,8 +114,9 @@ function init() {
         vec3 pos = position;
         float t = uTime * 0.18;
 
-        // slow rotation, outer rings drift slightly faster
-        float spin = t * (0.04 + aRing * 0.05);
+        // slow rotation, outer rings drift slightly faster; on scroll each
+        // particle gets its own extra spin so the rings dissolve tangentially
+        float spin = t * (0.04 + aRing * 0.05) + uScroll * (0.25 + aRand * 0.9);
         float c = cos(spin), s = sin(spin);
         pos.xz = mat2(c, -s, s, c) * pos.xz;
 
@@ -122,6 +125,10 @@ function init() {
         float n2 = noise(pos.xz * 0.05 - vec2(t * 0.12));
         pos.y += (n - 0.5) * (1.6 + aRing * 2.2) + (n2 - 0.5) * 2.4;
         vWave = n;
+
+        // scroll exit: the field lifts and spreads like a flock taking off
+        pos.y += uScroll * (2.0 + aRand * 8.0);
+        pos.xz *= 1.0 + uScroll * (0.12 + aRand * 0.45);
 
         vec4 mv = modelViewMatrix * vec4(pos, 1.0);
         vDepth = -mv.z;
@@ -134,6 +141,7 @@ function init() {
       uniform vec3 uCopper;
       uniform vec3 uCloud;
       uniform float uFade;
+      uniform float uScroll;
       varying float vRing;
       varying float vRand;
       varying float vWave;
@@ -153,7 +161,8 @@ function init() {
         // fade with distance and at the outermost rings
         float depthFade = smoothstep(34.0, 14.0, vDepth);
         float edgeFade = 1.0 - smoothstep(0.78, 1.0, vRing);
-        float alpha = disc * depthFade * edgeFade * (0.5 + vWave * 0.5) * uFade;
+        float alpha = disc * depthFade * edgeFade * (0.5 + vWave * 0.5) * uFade
+                    * (1.0 - uScroll * 0.85);
 
         gl_FragColor = vec4(col, alpha);
       }
@@ -163,6 +172,16 @@ function init() {
   const points = new THREE.Points(geometry, material);
   points.position.y = -2.2;
   scene.add(points);
+
+  // --- Scroll choreography: rings lift, spread, and dissolve as the hero exits
+  if (!reduceMotion && window.gsap && window.ScrollTrigger) {
+    window.gsap.registerPlugin(window.ScrollTrigger);
+    window.gsap.to(uniforms.uScroll, {
+      value: 1,
+      ease: 'none',
+      scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom 20%', scrub: 0.5 },
+    });
+  }
 
   // --- Mouse parallax --------------------------------------------------------
   const targetTilt = { x: 0, y: 0 };

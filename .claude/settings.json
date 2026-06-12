@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp cdp3.js cdp4.js)",
+      "Bash(python3 -)",
+      "Bash(node cdp4.js http://127.0.0.1:4173/ ' *)",
+      "Bash(node cdp4.js http://127.0.0.1:4174/ ' *)",
+      "Bash(node cdp4.js http://127.0.0.1:4173/ ''\\\\''-'\\\\''' ' *)",
+      "Bash(rm -rf profile profile2 profile3 profile4)",
+      "Bash(node cdp4.js http://127.0.0.1:4173/?cb=__CMDSUB_OUTPUT__ ''\\\\''-'\\\\''' ' *)",
+      "Bash(node cdp5.js)"
+    ]
+  }
+}
