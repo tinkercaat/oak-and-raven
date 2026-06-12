@@ -81,7 +81,7 @@ export function initIridescence(canvas) {
         // sweeping off a feather's shaft ----
         vec2 fuv = vUv * vec2(3.81, 1.0); // aspect-correct (16 / 4.2)
         float curl = fbm(vUv * vec2(1.2, 0.8)) - 0.5;
-        float angle = -0.35 + (vUv.y - 0.5) * 0.8 + curl * 0.9;
+        float angle = -0.3 + (vUv.y - 0.5) * 0.5 + curl * 0.35;
         vec2 dir = vec2(cos(angle), sin(angle));
         float along  = dot(fuv, dir);
         float across = dot(fuv, vec2(-dir.y, dir.x));
@@ -91,23 +91,22 @@ export function initIridescence(canvas) {
         float fiber2 = vnoise(vec2(across * 420.0 + 7.0, along * 5.0));
         float barbs = smoothstep(0.25, 0.85, fiber * 0.65 + fiber2 * 0.35);
 
-        // interference phase: viewing angle + position along the barbs,
-        // so the sheen rides the fibres in narrow bands
-        float phase = (1.0 - ndv) * 6.0 + along * 2.0 + fiber * 2.4
-                    + fbm(vUv * vec2(3.0, 1.5)) * 2.0 + uTime * 0.25;
-        vec3 w3 = 0.5 + 0.5 * cos(phase + vec3(0.0, 1.35, 2.7));
+        // Feather sheen, not oil film: hue shifts MONOTONICALLY with viewing
+        // angle (green facing -> teal-blue glancing -> violet kiss at the
+        // grazing extreme). No periodic phase = no rainbow banding.
+        float grazing = 1.0 - ndv;
+        vec3 sheenColor = mix(uIrid * 1.45, vec3(0.30, 0.42, 0.62),
+                              smoothstep(0.35, 0.85, grazing));
+        sheenColor = mix(sheenColor, vec3(0.44, 0.38, 0.64),
+                         smoothstep(0.85, 1.0, grazing) * 0.6);
 
-        // bias the spectrum to the brand: green leads, blue-violet follows,
-        // copper only as the faintest warm flash
-        vec3 sheen = uIrid * 1.6 * w3.g
-                   + vec3(0.32, 0.40, 0.66) * w3.b
-                   + uCopper * 0.28 * w3.r;
+        // the fibres vary in BRIGHTNESS (gloss), drifting slowly with time
+        float shimmer = 0.55 + 0.45 * vnoise(vec2(along * 3.0 + uTime * 0.15, across * 24.0));
 
         // sleek near-black base; barbs darken the gaps between filaments
         vec3 base = vec3(0.055, 0.062, 0.082) * (0.7 + 0.3 * barbs);
-        float fres = pow(1.0 - ndv, 3.0);
-        // sheen concentrated on the filaments, tight and glossy
-        vec3 col = base + sheen * (0.06 + fres * 0.9) * (0.25 + 0.75 * barbs);
+        float fres = pow(grazing, 3.0);
+        vec3 col = base + sheenColor * (0.05 + fres * 1.0) * (0.25 + 0.75 * barbs) * shimmer;
 
         float edge = smoothstep(0.0, 0.10, vUv.x) * smoothstep(1.0, 0.90, vUv.x)
                    * smoothstep(0.0, 0.18, vUv.y) * smoothstep(1.0, 0.82, vUv.y);
