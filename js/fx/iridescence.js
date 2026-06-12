@@ -104,7 +104,7 @@ export function initIridescence(canvas) {
 
         // vane silhouette: bare near the quill, fullest past midspan,
         // tapering toward the (off-canvas) point; trailing edge wider
-        float prof = sin(3.14159 * pow(clamp(t, 0.0, 1.0), 0.8));
+        float prof = sin(3.14159 * pow(clamp(t, 0.0, 1.0), 0.6));
         prof *= smoothstep(0.03, 0.22, t);
         float wSide = (side > 0.0 ? 0.30 : 0.20) * prof;
         float vane = 1.0 - smoothstep(wSide * 0.72, wSide, abs(q));
@@ -136,10 +136,12 @@ export function initIridescence(canvas) {
         float fres = pow(grazing, 3.0);
         vec3 col = base + sheenColor * (0.05 + fres * 1.15) * (0.25 + 0.75 * barbs) * shimmer;
 
-        // rachis: a thin, faintly lit ridge tapering toward the tip
-        float rw = 0.014 * (1.0 - t * 0.65) + 0.003;
+        // rachis: a thin lit ridge at the bare quill end that melts into the
+        // plumage once the vane develops (barbs cover the shaft on a real
+        // feather — it shouldn't slice through to the tip)
+        float rw = 0.007 * (1.0 - t * 0.5) + 0.002;
         float rachis = 1.0 - smoothstep(rw * 0.45, rw, abs(q));
-        rachis *= smoothstep(0.0, 0.05, t) * (1.0 - smoothstep(0.93, 1.0, t));
+        rachis *= smoothstep(0.0, 0.05, t) * (1.0 - smoothstep(0.30, 0.65, t));
         col = mix(col, vec3(0.15, 0.155, 0.185) + sheenColor * fres * 0.35, rachis * 0.85);
 
         // canvas-edge safety fade (the silhouette does the real shaping now)
