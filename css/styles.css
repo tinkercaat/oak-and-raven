@@ -676,31 +676,36 @@ em { font-style: italic; }
   max-width: 420px;
   border: 1px solid var(--border-dark);
   border-radius: 3px;
-  background:
-    radial-gradient(ellipse 120% 90% at 20% 110%, rgba(66, 104, 88, 0.45), transparent 60%),
-    radial-gradient(ellipse 90% 70% at 90% -10%, rgba(176, 112, 56, 0.18), transparent 55%),
-    var(--slate);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
+  background: var(--slate);
   position: relative;
   overflow: hidden;
 }
-.about__monogram {
-  font-family: var(--font-serif);
-  font-size: clamp(5rem, 10vw, 8rem);
-  font-weight: 500;
-  line-height: 1;
-  color: var(--cloud);
+.about__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 22%; /* square source in a 4:5 frame — keep the face high */
 }
-.about__monogram em { color: var(--copper); }
+/* darkening gradient so the caption reads over the photo */
+.about__portrait-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(20, 22, 29, 0.72), rgba(20, 22, 29, 0.18) 28%, transparent 45%);
+  pointer-events: none;
+}
 .about__portrait-caption {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 1.4rem;
+  z-index: 1;
+  text-align: center;
   font-size: 0.68rem;
   letter-spacing: 0.36em;
   text-transform: uppercase;
-  color: var(--driftwood);
+  color: var(--cloud);
 }
 .about__role {
   font-size: 0.55em;
