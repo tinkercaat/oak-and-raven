@@ -23,7 +23,8 @@
       "Bash(sips -c 800 1300 --cropOffset 350 2000 ribbon-smooth.png --out feather-quill.png)",
       "Bash(git commit -m ' *)",
       "Bash(echo \"exit: $?\")",
-      "Bash(node cdp3.js \"http://127.0.0.1:4173/?cb=$\\(date +%s\\)\")"
+      "Bash(node cdp3.js \"http://127.0.0.1:4173/?cb=$\\(date +%s\\)\")",
+      "Bash(echo \"grep exit: $? \\(1 = no references left\\)\")"
     ]
   }
 }
