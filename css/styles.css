@@ -25,7 +25,7 @@
 
   /* Type */
   --font-serif: "Cormorant Garamond", Georgia, serif;
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   /* Rhythm */
   --section-pad: clamp(6rem, 11vw, 10.5rem);
