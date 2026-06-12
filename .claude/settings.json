@@ -8,7 +8,22 @@
       "Bash(node cdp4.js http://127.0.0.1:4173/ ''\\\\''-'\\\\''' ' *)",
       "Bash(rm -rf profile profile2 profile3 profile4)",
       "Bash(node cdp4.js http://127.0.0.1:4173/?cb=__CMDSUB_OUTPUT__ ''\\\\''-'\\\\''' ' *)",
-      "Bash(node cdp5.js)"
+      "Bash(node cdp5.js)",
+      "Bash(node shot-ribbon.js)",
+      "Bash(sed -i '' 's/clip: { x: 40, y: 80, width: 600, height: 420, scale: 2 }/clip: { x: 60, y: 70, width: 520, height: 330, scale: 2 }/' shot-crop.js)",
+      "Bash(node shot-crop.js)",
+      "Bash(sips -g pixelWidth -g pixelHeight ribbon-smooth.png)",
+      "Bash(sips -c 600 1400 --cropOffset 180 80 ribbon-smooth.png --out ribbon-zoom.png)",
+      "Bash(rm -rf profile6)",
+      "Bash(sips -c 700 1800 --cropOffset 380 200 ribbon-smooth.png --out feather-zoom.png)",
+      "Bash(sips -c 600 1200 --cropOffset 420 2000 ribbon-smooth.png --out feather-tip.png)",
+      "Bash(sips -c 700 2200 --cropOffset 300 60 ribbon-smooth.png --out feather-zoom.png)",
+      "Bash(sips -c 800 2600 --cropOffset 250 100 ribbon-smooth.png --out feather-zoom.png)",
+      "Bash(sips -c 800 1500 --cropOffset 250 0 ribbon-smooth.png --out feather-tip.png)",
+      "Bash(sips -c 800 1300 --cropOffset 350 2000 ribbon-smooth.png --out feather-quill.png)",
+      "Bash(git commit -m ' *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(node cdp3.js \"http://127.0.0.1:4173/?cb=$\\(date +%s\\)\")"
     ]
   }
 }
