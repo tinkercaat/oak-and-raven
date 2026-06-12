@@ -72,45 +72,82 @@ export function initIridescence(canvas) {
       uniform vec3 uCopper;
       ${GLSL_NOISE}
 
+      // ---- feather anatomy --------------------------------------------------
+      // One oversized feather, dramatically cropped: the quill enters at the
+      // lower-left of the section, the tip exits past the upper-right.
+      const vec2 FUV_SCALE = vec2(3.81, 1.0); // aspect-correct (16 / 4.2)
+      const float XQ = -0.3; // quill x, just off the left edge
+      const float XT = 4.5;  // tip x, off the right edge
+
+      float shaftCurve(float t) {
+        // rachis centreline in uv.y, rising lower-left -> upper-right
+        return 0.30 + 0.40 * t + 0.09 * sin(t * 2.8);
+      }
+
       void main() {
         vec3 N = normalize(vNormal);
         vec3 V = normalize(cameraPosition - vWorld);
         float ndv = abs(dot(N, V));
 
-        // ---- barb field: a gently curving fibre direction, like the barbs
-        // sweeping off a feather's shaft ----
-        vec2 fuv = vUv * vec2(3.81, 1.0); // aspect-correct (16 / 4.2)
-        float curl = fbm(vUv * vec2(1.2, 0.8)) - 0.5;
-        float angle = -0.3 + (vUv.y - 0.5) * 0.5 + curl * 0.35;
-        vec2 dir = vec2(cos(angle), sin(angle));
-        float along  = dot(fuv, dir);
-        float across = dot(fuv, vec2(-dir.y, dir.x));
+        vec2 fuv = vUv * FUV_SCALE;
+        float t = (fuv.x - XQ) / (XT - XQ); // 0 at quill .. 1 at tip
+        float ys = shaftCurve(t);
+        float q = fuv.y - ys;               // signed offset from the shaft
+        float side = sign(q);
 
-        // filaments: noise stretched long in the barb direction, fine across
-        float fiber  = vnoise(vec2(across * 160.0, along * 2.5));
-        float fiber2 = vnoise(vec2(across * 420.0 + 7.0, along * 5.0));
+        // shaft tangent, and barbs sweeping tipward ~40deg off it per side
+        float dys = (shaftCurve(t + 0.01) - shaftCurve(t)) / (0.01 * (XT - XQ));
+        vec2 tangent = normalize(vec2(1.0, dys));
+        float ba = radians(40.0) * side;
+        vec2 barbDir = mat2(cos(ba), -sin(ba), sin(ba), cos(ba)) * tangent;
+        vec2 barbPerp = vec2(-barbDir.y, barbDir.x);
+
+        // vane silhouette: bare near the quill, fullest past midspan,
+        // tapering toward the (off-canvas) point; trailing edge wider
+        float prof = sin(3.14159 * pow(clamp(t, 0.0, 1.0), 0.8));
+        prof *= smoothstep(0.03, 0.22, t);
+        float wSide = (side > 0.0 ? 0.30 : 0.20) * prof;
+        float vane = 1.0 - smoothstep(wSide * 0.72, wSide, abs(q));
+
+        // vane splits: V-shaped separations, deepest at the outer edge
+        float sp = vnoise(vec2(t * 16.0, side > 0.0 ? 3.7 : 8.9));
+        float cut = smoothstep(0.74, 0.92, sp)
+                  * smoothstep(0.30, 0.95, abs(q) / max(wSide, 1e-4));
+        vane *= 1.0 - cut * 0.9;
+
+        // filaments along the barb direction
+        float fiber  = vnoise(vec2(dot(fuv, barbPerp) * 170.0, dot(fuv, barbDir) * 2.5));
+        float fiber2 = vnoise(vec2(dot(fuv, barbPerp) * 430.0 + 7.0, dot(fuv, barbDir) * 5.0));
         float barbs = smoothstep(0.25, 0.85, fiber * 0.65 + fiber2 * 0.35);
 
-        // Feather sheen, not oil film: hue shifts MONOTONICALLY with viewing
-        // angle (green facing -> teal-blue glancing -> violet kiss at the
-        // grazing extreme). No periodic phase = no rainbow banding.
+        // Feather sheen: hue shifts MONOTONICALLY with viewing angle
+        // (green facing -> teal-blue glancing -> violet at grazing extreme)
         float grazing = 1.0 - ndv;
         vec3 sheenColor = mix(uIrid * 1.45, vec3(0.30, 0.42, 0.62),
                               smoothstep(0.35, 0.85, grazing));
         sheenColor = mix(sheenColor, vec3(0.44, 0.38, 0.64),
                          smoothstep(0.85, 1.0, grazing) * 0.6);
 
-        // the fibres vary in BRIGHTNESS (gloss), drifting slowly with time
-        float shimmer = 0.55 + 0.45 * vnoise(vec2(along * 3.0 + uTime * 0.15, across * 24.0));
+        // fibres vary in BRIGHTNESS (gloss), drifting slowly with time
+        float shimmer = 0.55 + 0.45 * vnoise(vec2(dot(fuv, barbDir) * 3.0 + uTime * 0.15,
+                                                  dot(fuv, barbPerp) * 24.0));
 
-        // sleek near-black base; barbs darken the gaps between filaments
         vec3 base = vec3(0.055, 0.062, 0.082) * (0.7 + 0.3 * barbs);
         float fres = pow(grazing, 3.0);
-        vec3 col = base + sheenColor * (0.05 + fres * 1.0) * (0.25 + 0.75 * barbs) * shimmer;
+        vec3 col = base + sheenColor * (0.05 + fres * 1.15) * (0.25 + 0.75 * barbs) * shimmer;
 
-        float edge = smoothstep(0.0, 0.10, vUv.x) * smoothstep(1.0, 0.90, vUv.x)
-                   * smoothstep(0.0, 0.18, vUv.y) * smoothstep(1.0, 0.82, vUv.y);
-        gl_FragColor = vec4(col, edge * 0.9);
+        // rachis: a thin, faintly lit ridge tapering toward the tip
+        float rw = 0.014 * (1.0 - t * 0.65) + 0.003;
+        float rachis = 1.0 - smoothstep(rw * 0.45, rw, abs(q));
+        rachis *= smoothstep(0.0, 0.05, t) * (1.0 - smoothstep(0.93, 1.0, t));
+        col = mix(col, vec3(0.15, 0.155, 0.185) + sheenColor * fres * 0.35, rachis * 0.85);
+
+        // canvas-edge safety fade (the silhouette does the real shaping now)
+        float edge = smoothstep(0.0, 0.04, vUv.x) * smoothstep(1.0, 0.96, vUv.x)
+                   * smoothstep(0.0, 0.06, vUv.y) * smoothstep(1.0, 0.94, vUv.y);
+
+        float alpha = max(vane, rachis) * edge * 0.92;
+        gl_FragColor = vec4(col, alpha);
       }
     `,
   });
