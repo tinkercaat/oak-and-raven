@@ -76,14 +76,15 @@ export function initIridescence(canvas) {
       // One oversized feather, dramatically cropped: the quill enters at the
       // lower-left of the section, the tip exits past the upper-right.
       const vec2 FUV_SCALE = vec2(3.81, 1.0); // aspect-correct (16 / 4.2)
-      const float XQ = -0.05; // quill x, entering at the left edge
-      const float XT = 3.55;  // tip x, visible inside the right edge
+      const float QUILL_X = 4.05; // quill base, hidden just off the right edge
+      const float TIP_X   = 0.18; // tip, reaching into the left of the section
 
       float shaftCurve(float t) {
-        // rachis centreline in uv.y: a pronounced arc, bowing up through
-        // midspan the way a flight feather curves
-        return 0.26 + 0.42 * t + 0.16 * sin(3.14159 * t);
+        // rachis centreline in uv.y: enters low at the bottom-right and
+        // rises toward the midline, bowing through midspan
+        return 0.18 + 0.42 * t + 0.14 * sin(3.14159 * t);
       }
+      float xFromT(float t) { return QUILL_X + (TIP_X - QUILL_X) * t; }
 
       void main() {
         vec3 N = normalize(vNormal);
@@ -91,21 +92,24 @@ export function initIridescence(canvas) {
         float ndv = abs(dot(N, V));
 
         vec2 fuv = vUv * FUV_SCALE;
-        float t = (fuv.x - XQ) / (XT - XQ); // 0 at quill .. 1 at tip
+        float t = (QUILL_X - fuv.x) / (QUILL_X - TIP_X); // 0 at quill .. 1 at tip
         float ys = shaftCurve(t);
         float q = fuv.y - ys;               // signed offset from the shaft
         float side = sign(q);
 
-        // shaft tangent, and barbs sweeping tipward ~40deg off it per side
-        float dys = (shaftCurve(t + 0.01) - shaftCurve(t)) / (0.01 * (XT - XQ));
-        vec2 tangent = normalize(vec2(1.0, dys));
+        // shaft tangent (pointing tipward by construction), and barbs
+        // sweeping tipward ~40deg off it per side
+        vec2 shaftA = vec2(xFromT(t), shaftCurve(t));
+        vec2 shaftB = vec2(xFromT(t + 0.01), shaftCurve(t + 0.01));
+        vec2 tangent = normalize(shaftB - shaftA);
         float ba = radians(40.0) * side;
         vec2 barbDir = mat2(cos(ba), -sin(ba), sin(ba), cos(ba)) * tangent;
         vec2 barbPerp = vec2(-barbDir.y, barbDir.x);
 
         // vane silhouette: long bare quill, then a strongly lopsided vane —
-        // broad trailing edge below the shaft, tight leading edge above
-        float prof = sin(3.14159 * pow(clamp(t, 0.0, 1.0), 0.6));
+        // broad trailing edge below the shaft, tight leading edge above.
+        // The fractional outer pow rounds the tip instead of needling it.
+        float prof = pow(sin(3.14159 * pow(clamp(t, 0.0, 1.0), 0.6)), 0.65);
         prof *= smoothstep(0.10, 0.30, t);
         float wSide = (side > 0.0 ? 0.15 : 0.33) * prof;
 
@@ -115,8 +119,8 @@ export function initIridescence(canvas) {
         float vane = 1.0 - smoothstep(wEff * 0.70, wEff, abs(q));
 
         // vane splits: deeper, more frequent V-shaped separations
-        float sp = vnoise(vec2(t * 18.0, side > 0.0 ? 3.7 : 8.9));
-        float cut = smoothstep(0.68, 0.88, sp)
+        float spn = vnoise(vec2(t * 18.0, side > 0.0 ? 3.7 : 8.9));
+        float cut = smoothstep(0.68, 0.88, spn)
                   * smoothstep(0.25, 0.9, abs(q) / max(wSide, 1e-4));
         vane *= 1.0 - cut;
 
@@ -165,7 +169,7 @@ export function initIridescence(canvas) {
   });
 
   const ribbon = new THREE.Mesh(geometry, material);
-  ribbon.rotation.set(-0.5, 0, -0.14);
+  ribbon.rotation.set(-0.5, 0, -0.18); // z-tilt drops the right side: the quill enters low
   ribbon.position.y = -0.1;
   scene.add(ribbon);
 
