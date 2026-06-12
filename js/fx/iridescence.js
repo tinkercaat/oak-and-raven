@@ -29,18 +29,33 @@ export function initIridescence(canvas) {
     vertexShader: /* glsl */ `
       varying vec2 vUv;
       varying vec3 vWorld;
+      varying vec3 vNormal;
       uniform float uTime;
       ${GLSL_NOISE}
 
+      const vec2 PLANE = vec2(16.0, 4.2); // must match PlaneGeometry dims
+
+      // the ribbon surface as a pure function of uv, so we can sample
+      // neighbours and build a smooth analytic normal (screen-space
+      // derivative normals flat-shade each triangle into visible facets)
+      vec3 surfacePoint(vec2 suv) {
+        vec3 p = vec3((suv - 0.5) * PLANE, 0.0);
+        float t = uTime;
+        // layered undulation: broad fbm swell plus a slow travelling wave
+        p.z += fbm(suv * vec2(3.0, 1.4) + vec2(-t * 0.05, t * 0.02)) * 1.5;
+        p.z += sin(suv.x * 5.5 + t * 0.12) * 0.35;
+        p.y += sin(suv.x * 2.5 - t * 0.05) * 0.25;
+        return p;
+      }
+
       void main() {
         vUv = uv;
-        vec3 p = position;
-        float t = uTime;
+        vec3 p = surfacePoint(uv);
 
-        // layered undulation: broad fbm swell plus a slow travelling wave
-        p.z += fbm(uv * vec2(3.0, 1.4) + vec2(-t * 0.05, t * 0.02)) * 1.5;
-        p.z += sin(uv.x * 5.5 + t * 0.12) * 0.35;
-        p.y += sin(uv.x * 2.5 - t * 0.05) * 0.25;
+        float e = 0.004;
+        vec3 tx = surfacePoint(uv + vec2(e, 0.0)) - p;
+        vec3 ty = surfacePoint(uv + vec2(0.0, e)) - p;
+        vNormal = normalize(mat3(modelMatrix) * normalize(cross(tx, ty)));
 
         vec4 w = modelMatrix * vec4(p, 1.0);
         vWorld = w.xyz;
@@ -50,13 +65,14 @@ export function initIridescence(canvas) {
     fragmentShader: /* glsl */ `
       varying vec2 vUv;
       varying vec3 vWorld;
+      varying vec3 vNormal;
       uniform float uTime;
       uniform vec3 uIrid;
       uniform vec3 uCopper;
       ${GLSL_NOISE}
 
       void main() {
-        vec3 N = normalize(cross(dFdx(vWorld), dFdy(vWorld)));
+        vec3 N = normalize(vNormal);
         vec3 V = normalize(cameraPosition - vWorld);
         float ndv = abs(dot(N, V));
 
