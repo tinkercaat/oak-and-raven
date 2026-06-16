@@ -1,0 +1,12 @@
+{
+  // Cloudflare Workers config for the Oak and Raven static site.
+  // No Worker script — this is an assets-only deployment that serves
+  // the static files (index.html, css/, js/, imgs/) from the repo root.
+  "name": "oak-and-raven",
+  "compatibility_date": "2026-06-16",
+  "assets": {
+    "directory": "./",
+    // Serve a clean 404 for unknown paths rather than falling back to index.html.
+    "not_found_handling": "404-page"
+  }
+}

@@ -1,0 +1,8 @@
+# Files that should NOT be uploaded as public static assets.
+.git
+.claude
+.gitignore
+.assetsignore
+wrangler.jsonc
+.DS_Store
+**/.DS_Store
