@@ -4,6 +4,12 @@
   // the static files (index.html, css/, js/, imgs/) from the repo root.
   "name": "oak-and-raven",
   "compatibility_date": "2026-06-16",
+  // Production traffic is served from the custom domain (oakandraven.com),
+  // so disable the public *.workers.dev route to avoid a duplicate, indexable
+  // copy of the site. Keep per-version preview URLs enabled for a future
+  // branch-based PR-preview workflow.
+  "workers_dev": false,
+  "preview_urls": true,
   "assets": {
     "directory": "./",
     // Serve a clean 404 for unknown paths rather than falling back to index.html.
